@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { X, Save, DollarSign } from 'lucide-react';
+import { X, Save } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../lib/auth';
 import { Investment } from './AssetFormModal';
@@ -237,8 +237,8 @@ export function OperationModal({ isOpen, onClose, onSave, investment }: Operatio
                                 type="button"
                                 onClick={() => setFormData(prev => ({ ...prev, type: type as any }))}
                                 className={`flex-1 py-1.5 text-sm rounded transition-colors ${formData.type === type
-                                        ? (type === 'buy' ? 'bg-primary text-white' : type === 'sell' ? 'bg-danger text-white' : 'bg-success text-white')
-                                        : 'text-text-secondary hover:text-text-primary'
+                                    ? (type === 'buy' ? 'bg-primary text-white' : type === 'sell' ? 'bg-danger text-white' : 'bg-success text-white')
+                                    : 'text-text-secondary hover:text-text-primary'
                                     }`}
                             >
                                 {type === 'buy' ? 'Compra' : type === 'sell' ? 'Venda' : 'Proventos'}
