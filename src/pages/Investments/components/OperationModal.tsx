@@ -60,24 +60,14 @@ export function OperationModal({ isOpen, onClose, onSave, investment }: Operatio
         e.preventDefault();
         setLoading(true);
 
-        const totalAmount = (formData.quantity * formData.price) + formData.fees;
-        // Note: For 'sell', fees reduce the total received? Or are they separate?
-        // Standard convention: 
-        // Buy: User pays (Qty * Price) + Fees
-        // Sell: User receives (Qty * Price) - Fees
-        // Dividend: User receives Total
-
+        // Calculate financial amount
         let financialAmount = 0;
         if (formData.type === 'buy') {
             financialAmount = (formData.quantity * formData.price) + formData.fees;
         } else if (formData.type === 'sell') {
             financialAmount = (formData.quantity * formData.price) - formData.fees;
         } else {
-            financialAmount = formData.quantity * formData.price; // Dividend usually just value
-            // For dividends, maybe input is just total value? 
-            // Let's assume user inputs 'price' as 'value per share' * qty, OR total amount directly.
-            // Ideally we should have a 'total' field field.
-            // Simplification: We use total calc here.
+            financialAmount = formData.quantity * formData.price;
         }
 
         try {
@@ -86,12 +76,6 @@ export function OperationModal({ isOpen, onClose, onSave, investment }: Operatio
             // 1. Create Financial Transaction (Optional)
             if (formData.createTransaction && formData.accountId) {
                 const isExpense = formData.type === 'buy';
-                // Buy = Expense (Money out)
-                // Sell/Dividend = Income (Money in)
-
-                // Need a category? We should probably have a system category for Investments
-                // Or let user pick. For now, let's try to find or create one, OR leave null if schema allows (it doesn't).
-                // We will fetch specific categories for investments.
 
                 // Fetch 'Investimentos' expense category or 'Rendimentos' income category
                 const categoryName = isExpense ? 'Investimentos' : (formData.type === 'sell' ? 'Resgate Investimento' : 'Proventos');
@@ -136,15 +120,13 @@ export function OperationModal({ isOpen, onClose, onSave, investment }: Operatio
                     if (transError) throw transError;
                     transactionId = trans.id;
 
-                    // Update Account Balance
-                    const { error: accError } = await supabase.rpc(isExpense ? 'decrement_balance' : 'increment_balance', {
+                    // Update Account Balance via RPC (optional/optimization)
+                    await supabase.rpc(isExpense ? 'decrement_balance' : 'increment_balance', {
                         row_id: formData.accountId,
                         amount: financialAmount
                     });
-                    // Fallback to manual update if RPC fails or doesn't exist (we implemented increment/decrement?)
-                    // Assuming we haven't implemented specific RPCs yet, standard is to update manually or triggers.
-                    // Let's do manual update for safety if RPC not confirmed.
-                    // Actually, let's just update manually here for certainty.
+
+                    // Fallback manual update
                     const account = accounts.find(a => a.id === formData.accountId);
                     if (account) {
                         const newBalance = isExpense ? account.balance - financialAmount : account.balance + financialAmount;
@@ -170,30 +152,23 @@ export function OperationModal({ isOpen, onClose, onSave, investment }: Operatio
             if (invTransError) throw invTransError;
 
             // 3. Update Investment Position (Cache)
-            // Calculate new quantity and average price
-            // This logic is complex (weighted average).
-            // For MVP, we update quantity. Average price updates only on BUY.
-
             let newQuantity = investment.quantity;
             let newAveragePrice = investment.average_price;
 
             if (formData.type === 'buy') {
-                const totalCost = (investment.quantity * investment.average_price) + (formData.quantity * formData.price); // Excluding fees from avg price usually, or including? standard is including.
+                const totalCost = (investment.quantity * investment.average_price) + (formData.quantity * formData.price);
                 const totalQty = investment.quantity + formData.quantity;
                 newAveragePrice = totalQty > 0 ? totalCost / totalQty : 0;
                 newQuantity = totalQty;
             } else if (formData.type === 'sell') {
                 newQuantity = investment.quantity - formData.quantity;
-                // Average price doesn't change on sell in Brazil/standard accounting (FIFO or Avg Price check).
             }
-            // Proventos don't change qty or avg price directly (reduce cost base? usually no, separate income)
 
             await supabase
                 .from('investments')
                 .update({
                     quantity: newQuantity,
                     average_price: newAveragePrice,
-                    // Optionally update current price if it was a trade
                     current_price: (formData.type === 'buy' || formData.type === 'sell') ? formData.price : investment.current_price
                 })
                 .eq('id', investment.id);
