@@ -137,11 +137,20 @@ export function Transactions() {
                 return;
             }
 
+            // Buscar categorias de Transferência
+            const transferExpenseCategory = categories.find(c => c.name === 'Transferência' && c.type === 'expense');
+            const transferIncomeCategory = categories.find(c => c.name === 'Transferência' && c.type === 'income');
+
+            if (!transferExpenseCategory || !transferIncomeCategory) {
+                alert('Erro: Categorias de "Transferência" (Receita e Despesa) não encontradas. Crie-as em Configurações.');
+                return;
+            }
+
             // 1. Saída da Origem
             const { error: errorOut } = await supabase.from('transactions').insert({
                 user_id: user!.id,
                 account_id: formData.account_id,
-                category_id: null, // Sem categoria específica ou criar uma 'Transferência'
+                category_id: transferExpenseCategory.id,
                 type: 'expense',
                 amount: formData.amount,
                 transaction_date: formData.transaction_date,
@@ -150,6 +159,7 @@ export function Transactions() {
             });
 
             if (errorOut) {
+                console.error(errorOut);
                 alert('Erro ao criar débito da transferência');
                 return;
             }
@@ -158,7 +168,7 @@ export function Transactions() {
             const { error: errorIn } = await supabase.from('transactions').insert({
                 user_id: user!.id,
                 account_id: formData.to_account_id,
-                category_id: null,
+                category_id: transferIncomeCategory.id,
                 type: 'income',
                 amount: formData.amount,
                 transaction_date: formData.transaction_date,
@@ -746,8 +756,11 @@ export function Transactions() {
                                 <input
                                     type="number"
                                     step="0.01"
-                                    value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                                    value={formData.amount || ''}
+                                    onChange={(e) => {
+                                        const value = e.target.value;
+                                        setFormData({ ...formData, amount: value === '' ? 0 : parseFloat(value) });
+                                    }}
                                     className="input"
                                     placeholder="0.00"
                                     required
