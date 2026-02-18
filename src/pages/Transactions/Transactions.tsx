@@ -54,6 +54,7 @@ export function Transactions() {
         amount: 0,
         transaction_date: format(new Date(), 'yyyy-MM-dd'),
         description: '',
+        to_account_id: '',
     });
 
     useEffect(() => {
@@ -127,6 +128,63 @@ export function Transactions() {
         const newStatus = isBefore(transactionDate, today) || transactionDate.toDateString() === today.toDateString()
             ? 'completed'
             : 'pending';
+
+
+        // Lógica de Transferência
+        if (formData.type === 'transfer') {
+            if (!formData.account_id || !formData.to_account_id || formData.account_id === formData.to_account_id) {
+                alert('Selecione contas de origem e destino diferentes.');
+                return;
+            }
+
+            // 1. Saída da Origem
+            const { error: errorOut } = await supabase.from('transactions').insert({
+                user_id: user!.id,
+                account_id: formData.account_id,
+                category_id: null, // Sem categoria específica ou criar uma 'Transferência'
+                type: 'expense',
+                amount: formData.amount,
+                transaction_date: formData.transaction_date,
+                description: `Transf. para ${accounts.find(a => a.id === formData.to_account_id)?.name}: ${formData.description}`,
+                status: newStatus,
+            });
+
+            if (errorOut) {
+                alert('Erro ao criar débito da transferência');
+                return;
+            }
+
+            // 2. Entrada no Destino
+            const { error: errorIn } = await supabase.from('transactions').insert({
+                user_id: user!.id,
+                account_id: formData.to_account_id,
+                category_id: null,
+                type: 'income',
+                amount: formData.amount,
+                transaction_date: formData.transaction_date,
+                description: `Transf. de ${accounts.find(a => a.id === formData.account_id)?.name}: ${formData.description}`,
+                status: newStatus,
+            });
+
+            if (errorIn) alert('Aviso: Erro ao criar crédito da transferência');
+
+            // 3. Atualizar Saldos
+            if (newStatus === 'completed') {
+                const accFrom = accounts.find(a => a.id === formData.account_id);
+                const accTo = accounts.find(a => a.id === formData.to_account_id);
+
+                if (accFrom) {
+                    await supabase.from('accounts').update({ balance: accFrom.balance - formData.amount }).eq('id', accFrom.id);
+                }
+                if (accTo) {
+                    await supabase.from('accounts').update({ balance: accTo.balance + formData.amount }).eq('id', accTo.id);
+                }
+            }
+
+            loadData();
+            closeModal();
+            return;
+        }
 
         if (editingTransaction) {
             // EDIÇÃO DE TRANSAÇÃO EXISTENTE
@@ -311,10 +369,11 @@ export function Transactions() {
         setFormData({
             type,
             account_id: accounts[0]?.id || '',
-            category_id: categories.find((c) => c.type === type)?.id || '',
+            category_id: type === 'transfer' ? '' : (categories.find((c) => c.type === type)?.id || ''),
             amount: 0,
             transaction_date: format(new Date(), 'yyyy-MM-dd'),
             description: '',
+            to_account_id: '',
         });
         setShowModal(true);
     };
@@ -328,6 +387,7 @@ export function Transactions() {
             amount: transaction.amount,
             transaction_date: transaction.transaction_date,
             description: transaction.description,
+            to_account_id: '',
         });
         setShowModal(true);
     };
@@ -345,7 +405,9 @@ export function Transactions() {
     };
 
     const formatDate = (date: string) => {
-        return format(new Date(date), "dd 'de' MMMM", { locale: ptBR });
+        if (!date) return '';
+        const [year, month, day] = date.split('-').map(Number);
+        return format(new Date(year, month - 1, day), "dd 'de' MMMM", { locale: ptBR });
     };
 
     const filteredCategories = categories.filter((c) => c.type === formData.type);
@@ -404,6 +466,13 @@ export function Transactions() {
                     >
                         <ArrowDownCircle className="w-5 h-5" />
                         Despesa
+                    </button>
+                    <button
+                        onClick={() => openModal('transfer')}
+                        className="btn-primary flex items-center gap-2"
+                    >
+                        <ArrowLeftRight className="w-5 h-5" />
+                        Transferência
                     </button>
                 </div>
             </div>
@@ -618,7 +687,7 @@ export function Transactions() {
                         </h2>
                         <form onSubmit={handleSubmit} className="space-y-4">
                             <div>
-                                <label className="label">Conta</label>
+                                <label className="label">{formData.type === 'transfer' ? 'Conta de Origem' : 'Conta'}</label>
                                 <select
                                     value={formData.account_id}
                                     onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
@@ -634,22 +703,43 @@ export function Transactions() {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="label">Categoria</label>
-                                <select
-                                    value={formData.category_id}
-                                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                    className="select"
-                                    required
-                                >
-                                    <option value="">Selecione uma categoria</option>
-                                    {filteredCategories.map((category) => (
-                                        <option key={category.id} value={category.id}>
-                                            {category.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
+                            {formData.type === 'transfer' && (
+                                <div>
+                                    <label className="label">Conta de Destino</label>
+                                    <select
+                                        value={formData.to_account_id}
+                                        onChange={(e) => setFormData({ ...formData, to_account_id: e.target.value })}
+                                        className="select"
+                                        required
+                                    >
+                                        <option value="">Selecione uma conta</option>
+                                        {accounts.filter(acc => acc.id !== formData.account_id).map((account) => (
+                                            <option key={account.id} value={account.id}>
+                                                {account.name} - {formatCurrency(account.balance)}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
+
+                            {formData.type !== 'transfer' && (
+                                <div>
+                                    <label className="label">Categoria</label>
+                                    <select
+                                        value={formData.category_id}
+                                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                        className="select"
+                                        required
+                                    >
+                                        <option value="">Selecione uma categoria</option>
+                                        {filteredCategories.map((category) => (
+                                            <option key={category.id} value={category.id}>
+                                                {category.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            )}
 
                             <div>
                                 <label className="label">Valor</label>
