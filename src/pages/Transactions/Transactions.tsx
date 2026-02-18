@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Calendar, X, Check, Clock, Edit, RotateCcw } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Calendar, X, Check, Clock, Edit, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCategoryIcon } from '../../utils/categoryIcons';
-import { format, isBefore, startOfToday } from 'date-fns';
+import { format, isBefore, startOfToday, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 type Account = {
@@ -57,11 +57,13 @@ export function Transactions() {
         to_account_id: '',
     });
 
+    const [currentMonth, setCurrentMonth] = useState(new Date());
+
     useEffect(() => {
         if (user) {
             loadData();
         }
-    }, [user, filterType, filterStatus]);
+    }, [user, filterType, filterStatus, currentMonth]);
 
     const loadData = async () => {
         await Promise.all([loadTransactions(), loadAccounts(), loadCategories()]);
@@ -69,6 +71,9 @@ export function Transactions() {
     };
 
     const loadTransactions = async () => {
+        const start = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+        const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd');
+
         let query = supabase
             .from('transactions')
             .select(`
@@ -77,6 +82,8 @@ export function Transactions() {
         category:categories(id, name, type, icon, color)
       `)
             .eq('user_id', user!.id)
+            .gte('transaction_date', start)
+            .lte('transaction_date', end)
             .order('transaction_date', { ascending: false })
             .order('created_at', { ascending: false });
 
@@ -487,8 +494,30 @@ export function Transactions() {
                 </div>
             </div>
 
+            {/* Month Navigation */}
+            <div className="flex items-center justify-center gap-4 bg-surface p-4 rounded-xl border border-border">
+                <button
+                    onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}
+                    className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
+                >
+                    <ChevronLeft className="w-6 h-6 text-text-secondary" />
+                </button>
+                <div className="flex items-center gap-2">
+                    <Calendar className="w-5 h-5 text-primary" />
+                    <span className="text-xl font-semibold capitalize">
+                        {format(currentMonth, 'MMMM yyyy', { locale: ptBR })}
+                    </span>
+                </div>
+                <button
+                    onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}
+                    className="p-2 hover:bg-surface-hover rounded-lg transition-colors"
+                >
+                    <ChevronRight className="w-6 h-6 text-text-secondary" />
+                </button>
+            </div >
+
             {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            < div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" >
                 <div className="card bg-gradient-to-br from-success to-success-hover text-white">
                     <p className="text-sm opacity-90 mb-1">Receitas Realizadas</p>
                     <p className="text-3xl font-bold">{formatCurrency(totalIncome)}</p>
@@ -511,10 +540,10 @@ export function Transactions() {
                     <p className="text-sm opacity-90 mb-1">Saldo Previsto</p>
                     <p className="text-3xl font-bold">{formatCurrency(balance + pendingIncome - pendingExpense)}</p>
                 </div>
-            </div>
+            </div >
 
             {/* Filters */}
-            <div className="flex flex-wrap gap-2">
+            < div className="flex flex-wrap gap-2" >
                 <div className="flex gap-2">
                     <button
                         onClick={() => setFilterType('all')}
@@ -578,234 +607,240 @@ export function Transactions() {
                         Previstas
                     </button>
                 </div>
-            </div>
+            </div >
 
             {/* Transactions List */}
-            <div className="space-y-4">
-                {transactions.map((transaction) => (
-                    <div key={transaction.id} className={`card-hover flex items-center justify-between ${transaction.status === 'pending' ? 'opacity-60 border-l-4 border-warning' : ''
-                        }`}>
-                        <div className="flex items-center gap-4 flex-1">
-                            <div
-                                className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                                style={{ backgroundColor: transaction.category?.color + '20', color: transaction.category?.color }}
-                            >
-                                {(() => {
-                                    const Icon = getCategoryIcon(transaction.category?.icon || '');
-                                    return <Icon className="w-6 h-6" />;
-                                })()}
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex items-center gap-2">
-                                    <h3 className="font-semibold">{transaction.description}</h3>
-                                    <span
-                                        className={`badge ${transaction.type === 'income'
-                                            ? 'badge-success'
-                                            : transaction.type === 'expense'
-                                                ? 'badge-danger'
-                                                : 'badge-primary'
-                                            }`}
-                                    >
-                                        {transaction.category?.name}
-                                    </span>
-                                    {transaction.status === 'pending' && (
-                                        <span className="badge badge-warning flex items-center gap-1">
-                                            <Clock className="w-3 h-3" />
-                                            Previsto
+            < div className="space-y-4" >
+                {
+                    transactions.map((transaction) => (
+                        <div key={transaction.id} className={`card-hover flex items-center justify-between ${transaction.status === 'pending' ? 'opacity-60 border-l-4 border-warning' : ''
+                            }`}>
+                            <div className="flex items-center gap-4 flex-1">
+                                <div
+                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                                    style={{ backgroundColor: transaction.category?.color + '20', color: transaction.category?.color }}
+                                >
+                                    {(() => {
+                                        const Icon = getCategoryIcon(transaction.category?.icon || '');
+                                        return <Icon className="w-6 h-6" />;
+                                    })()}
+                                </div>
+                                <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-semibold">{transaction.description}</h3>
+                                        <span
+                                            className={`badge ${transaction.type === 'income'
+                                                ? 'badge-success'
+                                                : transaction.type === 'expense'
+                                                    ? 'badge-danger'
+                                                    : 'badge-primary'
+                                                }`}
+                                        >
+                                            {transaction.category?.name}
                                         </span>
+                                        {transaction.status === 'pending' && (
+                                            <span className="badge badge-warning flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                Previsto
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-4 text-sm text-text-muted mt-1">
+                                        <span className="flex items-center gap-1">
+                                            <Calendar className="w-4 h-4" />
+                                            {formatDate(transaction.transaction_date)}
+                                        </span>
+                                        <span>{transaction.account?.name}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <p
+                                    className={`text-2xl font-bold ${transaction.type === 'income' ? 'text-success' : 'text-danger'
+                                        }`}
+                                >
+                                    {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => openEditModal(transaction)}
+                                        className="p-2 hover:bg-primary hover:text-white rounded-lg transition-colors"
+                                        title="Editar transação"
+                                    >
+                                        <Edit className="w-5 h-5" />
+                                    </button>
+                                    {transaction.status === 'pending' && (
+                                        <button
+                                            onClick={() => handleComplete(transaction)}
+                                            className="p-2 hover:bg-success hover:text-white rounded-lg transition-colors"
+                                            title="Efetivar transação"
+                                        >
+                                            <Check className="w-5 h-5" />
+                                        </button>
                                     )}
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-text-muted mt-1">
-                                    <span className="flex items-center gap-1">
-                                        <Calendar className="w-4 h-4" />
-                                        {formatDate(transaction.transaction_date)}
-                                    </span>
-                                    <span>{transaction.account?.name}</span>
+                                    {transaction.status === 'completed' && (
+                                        <button
+                                            onClick={() => handleRevert(transaction)}
+                                            className="p-2 hover:bg-warning hover:text-white rounded-lg transition-colors"
+                                            title="Reverter para previsto"
+                                        >
+                                            <RotateCcw className="w-5 h-5" />
+                                        </button>
+                                    )}
+                                    <button
+                                        onClick={() => handleDelete(transaction)}
+                                        className="p-2 hover:bg-danger hover:text-white rounded-lg transition-colors"
+                                        title="Excluir transação"
+                                    >
+                                        <X className="w-5 h-5" />
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <p
-                                className={`text-2xl font-bold ${transaction.type === 'income' ? 'text-success' : 'text-danger'
-                                    }`}
-                            >
-                                {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
-                            </p>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => openEditModal(transaction)}
-                                    className="p-2 hover:bg-primary hover:text-white rounded-lg transition-colors"
-                                    title="Editar transação"
-                                >
-                                    <Edit className="w-5 h-5" />
-                                </button>
-                                {transaction.status === 'pending' && (
-                                    <button
-                                        onClick={() => handleComplete(transaction)}
-                                        className="p-2 hover:bg-success hover:text-white rounded-lg transition-colors"
-                                        title="Efetivar transação"
-                                    >
-                                        <Check className="w-5 h-5" />
-                                    </button>
-                                )}
-                                {transaction.status === 'completed' && (
-                                    <button
-                                        onClick={() => handleRevert(transaction)}
-                                        className="p-2 hover:bg-warning hover:text-white rounded-lg transition-colors"
-                                        title="Reverter para previsto"
-                                    >
-                                        <RotateCcw className="w-5 h-5" />
-                                    </button>
-                                )}
-                                <button
-                                    onClick={() => handleDelete(transaction)}
-                                    className="p-2 hover:bg-danger hover:text-white rounded-lg transition-colors"
-                                    title="Excluir transação"
-                                >
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                ))}
+                    ))
+                }
 
-                {transactions.length === 0 && (
-                    <div className="card text-center py-12">
-                        <ArrowLeftRight className="w-16 h-16 text-text-muted mx-auto mb-4" />
-                        <h3 className="text-xl font-semibold mb-2">Nenhuma transação encontrada</h3>
-                        <p className="text-text-secondary mb-4">
-                            Comece adicionando uma receita ou despesa
-                        </p>
-                        <div className="flex gap-2 justify-center">
-                            <button onClick={() => openModal('income')} className="btn-success">
-                                Adicionar Receita
-                            </button>
-                            <button onClick={() => openModal('expense')} className="btn-danger">
-                                Adicionar Despesa
-                            </button>
+                {
+                    transactions.length === 0 && (
+                        <div className="card text-center py-12">
+                            <ArrowLeftRight className="w-16 h-16 text-text-muted mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold mb-2">Nenhuma transação encontrada</h3>
+                            <p className="text-text-secondary mb-4">
+                                Comece adicionando uma receita ou despesa
+                            </p>
+                            <div className="flex gap-2 justify-center">
+                                <button onClick={() => openModal('income')} className="btn-success">
+                                    Adicionar Receita
+                                </button>
+                                <button onClick={() => openModal('expense')} className="btn-danger">
+                                    Adicionar Despesa
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
-            </div>
+                    )
+                }
+            </div >
 
             {/* Modal */}
-            {showModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="card max-w-md w-full">
-                        <h2 className="text-2xl font-semibold mb-6">
-                            {editingTransaction ? 'Editar' : 'Nova'} {formData.type === 'income' ? 'Receita' : 'Despesa'}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="label">{formData.type === 'transfer' ? 'Conta de Origem' : 'Conta'}</label>
-                                <select
-                                    value={formData.account_id}
-                                    onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
-                                    className="select"
-                                    required
-                                >
-                                    <option value="">Selecione uma conta</option>
-                                    {accounts.map((account) => (
-                                        <option key={account.id} value={account.id}>
-                                            {account.name} - {formatCurrency(account.balance)}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-
-                            {formData.type === 'transfer' && (
+            {
+                showModal && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="card max-w-md w-full">
+                            <h2 className="text-2xl font-semibold mb-6">
+                                {editingTransaction ? 'Editar' : 'Nova'} {formData.type === 'income' ? 'Receita' : 'Despesa'}
+                            </h2>
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div>
-                                    <label className="label">Conta de Destino</label>
+                                    <label className="label">{formData.type === 'transfer' ? 'Conta de Origem' : 'Conta'}</label>
                                     <select
-                                        value={formData.to_account_id}
-                                        onChange={(e) => setFormData({ ...formData, to_account_id: e.target.value })}
+                                        value={formData.account_id}
+                                        onChange={(e) => setFormData({ ...formData, account_id: e.target.value })}
                                         className="select"
                                         required
                                     >
                                         <option value="">Selecione uma conta</option>
-                                        {accounts.filter(acc => acc.id !== formData.account_id).map((account) => (
+                                        {accounts.map((account) => (
                                             <option key={account.id} value={account.id}>
                                                 {account.name} - {formatCurrency(account.balance)}
                                             </option>
                                         ))}
                                     </select>
                                 </div>
-                            )}
 
-                            {formData.type !== 'transfer' && (
+                                {formData.type === 'transfer' && (
+                                    <div>
+                                        <label className="label">Conta de Destino</label>
+                                        <select
+                                            value={formData.to_account_id}
+                                            onChange={(e) => setFormData({ ...formData, to_account_id: e.target.value })}
+                                            className="select"
+                                            required
+                                        >
+                                            <option value="">Selecione uma conta</option>
+                                            {accounts.filter(acc => acc.id !== formData.account_id).map((account) => (
+                                                <option key={account.id} value={account.id}>
+                                                    {account.name} - {formatCurrency(account.balance)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {formData.type !== 'transfer' && (
+                                    <div>
+                                        <label className="label">Categoria</label>
+                                        <select
+                                            value={formData.category_id}
+                                            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                                            className="select"
+                                            required
+                                        >
+                                            <option value="">Selecione uma categoria</option>
+                                            {filteredCategories.map((category) => (
+                                                <option key={category.id} value={category.id}>
+                                                    {category.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
                                 <div>
-                                    <label className="label">Categoria</label>
-                                    <select
-                                        value={formData.category_id}
-                                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                                        className="select"
+                                    <label className="label">Valor</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        value={formData.amount || ''}
+                                        onChange={(e) => {
+                                            const value = e.target.value;
+                                            setFormData({ ...formData, amount: value === '' ? 0 : parseFloat(value) });
+                                        }}
+                                        className="input"
+                                        placeholder="0.00"
                                         required
-                                    >
-                                        <option value="">Selecione uma categoria</option>
-                                        {filteredCategories.map((category) => (
-                                            <option key={category.id} value={category.id}>
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        min="0.01"
+                                    />
                                 </div>
-                            )}
 
-                            <div>
-                                <label className="label">Valor</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    value={formData.amount || ''}
-                                    onChange={(e) => {
-                                        const value = e.target.value;
-                                        setFormData({ ...formData, amount: value === '' ? 0 : parseFloat(value) });
-                                    }}
-                                    className="input"
-                                    placeholder="0.00"
-                                    required
-                                    min="0.01"
-                                />
-                            </div>
+                                <div>
+                                    <label className="label">Data</label>
+                                    <input
+                                        type="date"
+                                        value={formData.transaction_date}
+                                        onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
+                                        className="input"
+                                        required
+                                    />
+                                    <p className="text-xs text-text-muted mt-1">
+                                        💡 Datas futuras serão marcadas como "Previsto" e não afetarão o saldo até serem efetivadas
+                                    </p>
+                                </div>
 
-                            <div>
-                                <label className="label">Data</label>
-                                <input
-                                    type="date"
-                                    value={formData.transaction_date}
-                                    onChange={(e) => setFormData({ ...formData, transaction_date: e.target.value })}
-                                    className="input"
-                                    required
-                                />
-                                <p className="text-xs text-text-muted mt-1">
-                                    💡 Datas futuras serão marcadas como "Previsto" e não afetarão o saldo até serem efetivadas
-                                </p>
-                            </div>
+                                <div>
+                                    <label className="label">Descrição</label>
+                                    <input
+                                        type="text"
+                                        value={formData.description}
+                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                        className="input"
+                                        placeholder="Ex: Salário, Supermercado, etc."
+                                        required
+                                    />
+                                </div>
 
-                            <div>
-                                <label className="label">Descrição</label>
-                                <input
-                                    type="text"
-                                    value={formData.description}
-                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    className="input"
-                                    placeholder="Ex: Salário, Supermercado, etc."
-                                    required
-                                />
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button type="submit" className={`flex-1 ${formData.type === 'income' ? 'btn-success' : 'btn-danger'}`}>
-                                    {editingTransaction ? 'Atualizar' : 'Salvar'}
-                                </button>
-                                <button type="button" onClick={closeModal} className="btn-ghost flex-1">
-                                    Cancelar
-                                </button>
-                            </div>
-                        </form>
+                                <div className="flex gap-3">
+                                    <button type="submit" className={`flex-1 ${formData.type === 'income' ? 'btn-success' : 'btn-danger'}`}>
+                                        {editingTransaction ? 'Atualizar' : 'Salvar'}
+                                    </button>
+                                    <button type="button" onClick={closeModal} className="btn-ghost flex-1">
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 }
