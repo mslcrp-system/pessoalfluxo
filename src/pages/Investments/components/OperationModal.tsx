@@ -120,18 +120,8 @@ export function OperationModal({ isOpen, onClose, onSave, investment }: Operatio
                     if (transError) throw transError;
                     transactionId = trans.id;
 
-                    // Update Account Balance via RPC (optional/optimization)
-                    await supabase.rpc(isExpense ? 'decrement_balance' : 'increment_balance', {
-                        row_id: formData.accountId,
-                        amount: financialAmount
-                    });
-
-                    // Fallback manual update
-                    const account = accounts.find(a => a.id === formData.accountId);
-                    if (account) {
-                        const newBalance = isExpense ? account.balance - financialAmount : account.balance + financialAmount;
-                        await supabase.from('accounts').update({ balance: newBalance }).eq('id', account.id);
-                    }
+                    // Update Account Balance - HANDLED BY DB TRIGGER
+                    // Logic removed
                 }
             }
 

@@ -190,18 +190,8 @@ export function Transactions() {
 
             if (errorIn) alert('Aviso: Erro ao criar crédito da transferência');
 
-            // 3. Atualizar Saldos
-            if (newStatus === 'completed') {
-                const accFrom = accounts.find(a => a.id === formData.account_id);
-                const accTo = accounts.find(a => a.id === formData.to_account_id);
-
-                if (accFrom) {
-                    await supabase.from('accounts').update({ balance: accFrom.balance - formData.amount }).eq('id', accFrom.id);
-                }
-                if (accTo) {
-                    await supabase.from('accounts').update({ balance: accTo.balance + formData.amount }).eq('id', accTo.id);
-                }
-            }
+            // 3. Atualizar Saldos - HANDLED BY DB TRIGGER
+            // if (newStatus === 'completed') { ... }
 
             loadData();
             closeModal();
@@ -210,10 +200,7 @@ export function Transactions() {
 
         if (editingTransaction) {
             // EDIÇÃO DE TRANSAÇÃO EXISTENTE
-            const oldStatus = editingTransaction.status;
-            const oldAmount = editingTransaction.amount;
-            const oldType = editingTransaction.type;
-            const oldAccountId = editingTransaction.account_id;
+            // Valores antigos não são mais necessários para cálculo manual de saldo (trigger do banco resolve)
 
             // Atualizar transação
             const { error: updateError } = await supabase
@@ -234,44 +221,8 @@ export function Transactions() {
                 return;
             }
 
-            // Ajustar saldos
-            // 1. Reverter saldo antigo (se estava completed)
-            if (oldStatus === 'completed') {
-                const oldAccount = accounts.find((a) => a.id === oldAccountId);
-                if (oldAccount) {
-                    const revertedBalance =
-                        oldType === 'income'
-                            ? oldAccount.balance - oldAmount
-                            : oldAccount.balance + oldAmount;
-
-                    await supabase
-                        .from('accounts')
-                        .update({ balance: revertedBalance })
-                        .eq('id', oldAccountId);
-                }
-            }
-
-            // 2. Aplicar novo saldo (se novo status é completed)
-            if (newStatus === 'completed') {
-                // Recarregar conta para pegar saldo atualizado
-                const { data: accountData } = await supabase
-                    .from('accounts')
-                    .select('balance')
-                    .eq('id', formData.account_id)
-                    .single();
-
-                if (accountData) {
-                    const newBalance =
-                        formData.type === 'income'
-                            ? accountData.balance + formData.amount
-                            : accountData.balance - formData.amount;
-
-                    await supabase
-                        .from('accounts')
-                        .update({ balance: newBalance })
-                        .eq('id', formData.account_id);
-                }
-            }
+            // Ajustar saldos - HANDLED BY DB TRIGGER
+            // Logic removed to prevent double counting with DB trigger
         } else {
             // CRIAÇÃO DE NOVA TRANSAÇÃO
             const { error: transactionError } = await supabase.from('transactions').insert({
@@ -290,21 +241,8 @@ export function Transactions() {
                 return;
             }
 
-            // Update account balance ONLY if completed
-            if (newStatus === 'completed') {
-                const account = accounts.find((a) => a.id === formData.account_id);
-                if (account) {
-                    const newBalance =
-                        formData.type === 'income'
-                            ? account.balance + formData.amount
-                            : account.balance - formData.amount;
-
-                    await supabase
-                        .from('accounts')
-                        .update({ balance: newBalance })
-                        .eq('id', formData.account_id);
-                }
-            }
+            // Update account balance - HANDLED BY DB TRIGGER
+            // Logic removed
         }
 
         loadData();
@@ -318,19 +256,7 @@ export function Transactions() {
             .update({ status: 'completed' })
             .eq('id', transaction.id);
 
-        // Update account balance
-        const account = accounts.find((a) => a.id === transaction.account_id);
-        if (account) {
-            const newBalance =
-                transaction.type === 'income'
-                    ? account.balance + transaction.amount
-                    : account.balance - transaction.amount;
-
-            await supabase
-                .from('accounts')
-                .update({ balance: newBalance })
-                .eq('id', transaction.account_id);
-        }
+        // Update account balance - HANDLED BY DB TRIGGER
 
         loadData();
     };
@@ -344,19 +270,7 @@ export function Transactions() {
             .update({ status: 'pending' })
             .eq('id', transaction.id);
 
-        // Reverse the balance change
-        const account = accounts.find((a) => a.id === transaction.account_id);
-        if (account) {
-            const newBalance =
-                transaction.type === 'income'
-                    ? account.balance - transaction.amount
-                    : account.balance + transaction.amount;
-
-            await supabase
-                .from('accounts')
-                .update({ balance: newBalance })
-                .eq('id', transaction.account_id);
-        }
+        // Reverse the balance change - HANDLED BY DB TRIGGER
 
         loadData();
     };
@@ -364,21 +278,7 @@ export function Transactions() {
     const handleDelete = async (transaction: Transaction) => {
         if (!confirm('Tem certeza que deseja excluir esta transação?')) return;
 
-        // Reverse the balance change ONLY if completed
-        if (transaction.status === 'completed') {
-            const account = accounts.find((a) => a.id === transaction.account_id);
-            if (account) {
-                const newBalance =
-                    transaction.type === 'income'
-                        ? account.balance - transaction.amount
-                        : account.balance + transaction.amount;
-
-                await supabase
-                    .from('accounts')
-                    .update({ balance: newBalance })
-                    .eq('id', transaction.account_id);
-            }
-        }
+        // Reverse the balance change - HANDLED BY DB TRIGGER
 
         // Delete transaction
         await supabase.from('transactions').delete().eq('id', transaction.id);
