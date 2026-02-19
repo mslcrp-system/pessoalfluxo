@@ -13,6 +13,7 @@ import {
     Menu,
     X,
     Settings,
+    BookOpen,
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -23,6 +24,7 @@ const navItems = [
     { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/accounts', icon: Wallet, label: 'Contas' },
     { to: '/transactions', icon: ArrowLeftRight, label: 'Transações' },
+    { to: '/extrato', icon: BookOpen, label: 'Extrato' },
     { to: '/credit-cards', icon: CreditCard, label: 'Cartões' },
     { to: '/investments', icon: TrendingUp, label: 'Investimentos' },
     { to: '/debts', icon: FileText, label: 'Dívidas' },

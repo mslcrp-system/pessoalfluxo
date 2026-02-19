@@ -35,10 +35,12 @@ type Account = {
     name: string;
     type: string;
     balance: number;
+    initial_balance: number;
 };
 
 type Transaction = {
     id: string;
+    account_id: string;
     type: 'income' | 'expense' | 'transfer';
     amount: number;
     transaction_date: string;
@@ -101,17 +103,30 @@ export function Dashboard() {
         }).format(value);
     };
 
-    // Calcular totais
-    const totalBalance = accounts.reduce((sum, acc) => sum + acc.balance, 0);
+    // ====================================================
+    // SALDO REAL = saldo_inicial + todas as transações realizadas
+    // ====================================================
+    const completedTransactions = transactions.filter(t => t.status === 'completed');
+
+    // Saldo calculado por conta (não depende do campo balance do banco)
+    const accountsWithRealBalance = accounts.map(acc => {
+        const accTransactions = completedTransactions.filter(t => t.account_id === acc.id);
+        const income = accTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+        const expense = accTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+        const realBalance = (acc.initial_balance ?? acc.balance) + income - expense;
+        return { ...acc, realBalance };
+    });
+
+    const totalRealBalance = accountsWithRealBalance.reduce((s, a) => s + a.realBalance, 0);
 
     // Transações do mês atual (apenas completed)
     const currentMonth = new Date();
     const monthStart = startOfMonth(currentMonth);
     const monthEnd = endOfMonth(currentMonth);
 
-    const currentMonthTransactions = transactions.filter((t) => {
-        const date = parseISO(t.transaction_date); // Usar parseISO para evitar problemas de timezone
-        return date >= monthStart && date <= monthEnd && t.status === 'completed';
+    const currentMonthTransactions = completedTransactions.filter((t) => {
+        const date = parseISO(t.transaction_date);
+        return date >= monthStart && date <= monthEnd;
     });
 
     const monthIncome = currentMonthTransactions
@@ -127,7 +142,6 @@ export function Dashboard() {
     // Dados para gráfico de fluxo de caixa semanal (últimas 4 semanas)
     const today = new Date();
 
-    // Gerar as últimas 4 semanas (períodos de 7 dias cada, terminando hoje)
     const weeks = [];
     for (let i = 3; i >= 0; i--) {
         const weekEnd = subDays(today, i * 7);
@@ -136,9 +150,9 @@ export function Dashboard() {
     }
 
     const weeklyData = weeks.map(({ start, end }) => {
-        const weekTransactions = transactions.filter((t) => {
+        const weekTransactions = completedTransactions.filter((t) => {
             const date = parseISO(t.transaction_date);
-            return date >= start && date <= end && t.status === 'completed';
+            return date >= start && date <= end;
         });
 
         const income = weekTransactions
@@ -182,7 +196,7 @@ export function Dashboard() {
             icon: data.icon,
         }))
         .sort((a, b) => b.value - a.value)
-        .slice(0, 6); // Top 6 categorias
+        .slice(0, 6);
 
     if (loading) {
         return (
@@ -204,10 +218,10 @@ export function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="card bg-gradient-to-br from-primary to-secondary text-white">
                     <div className="flex items-center justify-between mb-2">
-                        <p className="text-sm opacity-90">Saldo Total</p>
+                        <p className="text-sm opacity-90">Saldo Total Atual</p>
                         <Wallet className="w-5 h-5 opacity-75" />
                     </div>
-                    <p className="text-3xl font-bold">{formatCurrency(totalBalance)}</p>
+                    <p className="text-3xl font-bold">{formatCurrency(totalRealBalance)}</p>
                     <p className="text-xs opacity-75 mt-2">{accounts.length} conta(s) ativa(s)</p>
                 </div>
 
@@ -264,10 +278,7 @@ export function Dashboard() {
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={weeklyData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--surface-hover))" />
-                                <XAxis
-                                    dataKey="week"
-                                    tick={{ fontSize: 14, fill: '#94a3b8' }}
-                                />
+                                <XAxis dataKey="week" tick={{ fontSize: 14, fill: '#94a3b8' }} />
                                 <YAxis
                                     tick={{ fontSize: 14, fill: '#94a3b8' }}
                                     tickFormatter={(value) => `R$ ${(value / 1000).toFixed(1)}k`}
@@ -364,11 +375,7 @@ export function Dashboard() {
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={generateBalanceHistory()}>
                             <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--surface-hover))" />
-                            <XAxis
-                                dataKey="date"
-                                tick={{ fontSize: 14, fill: '#94a3b8' }}
-                                interval="preserveStartEnd"
-                            />
+                            <XAxis dataKey="date" tick={{ fontSize: 14, fill: '#94a3b8' }} interval="preserveStartEnd" />
                             <YAxis
                                 tick={{ fontSize: 14, fill: '#94a3b8' }}
                                 tickFormatter={(value) => `R$ ${(value / 1000).toFixed(1)}k`}
@@ -400,24 +407,31 @@ export function Dashboard() {
                 )}
             </div>
 
-            {/* Contas Resumo */}
+            {/* Contas com Saldo Real */}
             <div className="card">
                 <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                     <CreditCard className="w-5 h-5" />
                     Suas Contas
                 </h2>
-                {accounts.length > 0 ? (
+                {accountsWithRealBalance.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {accounts.map((account) => (
+                        {accountsWithRealBalance.map((account) => (
                             <div
                                 key={account.id}
                                 className="p-4 rounded-lg bg-surface-hover border border-surface-hover hover:border-primary transition-colors"
                             >
                                 <p className="text-sm text-text-secondary mb-1">{account.name}</p>
-                                <p className="text-2xl font-bold">{formatCurrency(account.balance)}</p>
-                                <p className="text-xs text-text-muted mt-1">
-                                    {account.type === 'checking' ? 'Conta Corrente' : 'Investimento'}
+                                <p className={`text-2xl font-bold ${account.realBalance < 0 ? 'text-danger' : ''}`}>
+                                    {formatCurrency(account.realBalance)}
                                 </p>
+                                <div className="flex justify-between mt-2">
+                                    <p className="text-xs text-text-muted">
+                                        {account.type === 'checking' ? 'Conta Corrente' : 'Investimento'}
+                                    </p>
+                                    <p className="text-xs text-text-muted">
+                                        Inicial: {formatCurrency(account.initial_balance ?? account.balance)}
+                                    </p>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -431,27 +445,21 @@ export function Dashboard() {
     );
 
     function generateBalanceHistory() {
-        // Gerar histórico de saldo dos últimos 30 dias (mostrando a cada 3 dias para não poluir)
         const today = new Date();
         const thirtyDaysAgo = subDays(today, 29);
+        const initialTotal = accounts.reduce((s, a) => s + (a.initial_balance ?? a.balance), 0);
 
-        const allDays = eachDayOfInterval({
-            start: thirtyDaysAgo,
-            end: today,
-        });
-
-        // Filtrar para mostrar apenas alguns pontos (a cada 3 dias + primeiro e último)
+        const allDays = eachDayOfInterval({ start: thirtyDaysAgo, end: today });
         const sampledDays = allDays.filter((_, index) =>
             index === 0 ||
             index === allDays.length - 1 ||
             index % 3 === 0
         );
 
-        const history = sampledDays.map((date) => {
-            // Calcular saldo até essa data (apenas completed)
-            const transactionsUntilDate = transactions.filter((t) => {
+        return sampledDays.map((date) => {
+            const transactionsUntilDate = completedTransactions.filter((t) => {
                 const tDate = parseISO(t.transaction_date);
-                return tDate <= date && t.status === 'completed';
+                return tDate <= date;
             });
 
             const income = transactionsUntilDate
@@ -464,10 +472,8 @@ export function Dashboard() {
 
             return {
                 date: format(date, 'dd/MM', { locale: ptBR }),
-                saldo: income - expense,
+                saldo: initialTotal + income - expense,
             };
         });
-
-        return history;
     }
 }

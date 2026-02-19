@@ -11,6 +11,7 @@ import { CreditCards } from './pages/CreditCards/CreditCards';
 import { Investments } from './pages/Investments/Investments';
 import { Debts } from './pages/Debts/Debts';
 import { Settings } from './pages/Settings/Settings';
+import { Extrato } from './pages/Extrato/Extrato';
 
 function App() {
   return (
@@ -88,6 +89,17 @@ function App() {
               <ProtectedRoute>
                 <Layout>
                   <Settings />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/extrato"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Extrato />
                 </Layout>
               </ProtectedRoute>
             }
