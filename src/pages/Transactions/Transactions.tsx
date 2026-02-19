@@ -46,6 +46,7 @@ export function Transactions() {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
+    const [filterAccount, setFilterAccount] = useState<string>('all');
 
     const [formData, setFormData] = useState({
         type: 'expense' as 'income' | 'expense' | 'transfer',
@@ -63,7 +64,7 @@ export function Transactions() {
         if (user) {
             loadData();
         }
-    }, [user, filterType, filterStatus, currentMonth]);
+    }, [user, filterType, filterStatus, filterAccount, currentMonth]);
 
     const loadData = async () => {
         await Promise.all([loadTransactions(), loadAccounts(), loadCategories()]);
@@ -93,6 +94,10 @@ export function Transactions() {
 
         if (filterStatus !== 'all') {
             query = query.eq('status', filterStatus);
+        }
+
+        if (filterAccount !== 'all') {
+            query = query.eq('account_id', filterAccount);
         }
 
         const { data, error } = await query;
@@ -543,7 +548,23 @@ export function Transactions() {
             </div >
 
             {/* Filters */}
-            < div className="flex flex-wrap gap-2" >
+            <div className="flex flex-wrap gap-2 items-center">
+                {/* Account Filter (Extrato) */}
+                <select
+                    value={filterAccount}
+                    onChange={(e) => setFilterAccount(e.target.value)}
+                    className="select w-auto min-w-[200px]"
+                >
+                    <option value="all">Todas as Contas</option>
+                    {accounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                            {acc.name}
+                        </option>
+                    ))}
+                </select>
+
+                <div className="h-8 w-px bg-surface-hover"></div>
+
                 <div className="flex gap-2">
                     <button
                         onClick={() => setFilterType('all')}
