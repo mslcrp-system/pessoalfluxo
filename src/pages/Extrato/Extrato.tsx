@@ -146,22 +146,22 @@ export function Extrato() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                    <h1 className="text-3xl font-bold mb-1">Extrato</h1>
-                    <p className="text-text-secondary">Fluxo de Caixa por Conta e Período</p>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-1">Extrato</h1>
+                    <p className="text-text-secondary text-sm md:text-base">Fluxo de Caixa por Conta e Período</p>
                 </div>
             </div>
 
             {/* Filtros: Conta + Mês */}
-            <div className="card flex flex-wrap items-center gap-4">
+            <div className="card flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-4">
                 {/* Seletor de conta */}
                 <div className="flex items-center gap-2">
                     <Wallet className="w-4 h-4 text-text-secondary" />
                     <select
                         value={selectedAccount}
                         onChange={e => setSelectedAccount(e.target.value)}
-                        className="select w-auto min-w-[200px]"
+                        className="select w-full sm:w-auto sm:min-w-[200px]"
                     >
                         <option value="all">Todas as Contas</option>
                         {accounts.map(acc => (
@@ -170,7 +170,7 @@ export function Extrato() {
                     </select>
                 </div>
 
-                <div className="h-8 w-px bg-surface-hover"></div>
+                <div className="hidden sm:block h-8 w-px bg-surface-hover"></div>
 
                 {/* Navegação de mês */}
                 <div className="flex items-center gap-3">
@@ -196,11 +196,11 @@ export function Extrato() {
             </div>
 
             {/* Cards de DFC */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
                 {/* Saldo de Abertura */}
                 <div className="card border-l-4 border-primary">
                     <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">Saldo de Abertura</p>
-                    <p className={`text-2xl font-bold ${openingBalance < 0 ? 'text-danger' : ''}`}>
+                    <p className={`text-lg md:text-2xl font-bold ${openingBalance < 0 ? 'text-danger' : ''}`}>
                         {formatCurrency(openingBalance)}
                     </p>
                     <p className="text-xs text-text-muted mt-1">Início do mês</p>
@@ -209,7 +209,7 @@ export function Extrato() {
                 {/* Entradas */}
                 <div className="card border-l-4 border-success">
                     <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">Entradas Realizadas</p>
-                    <p className="text-2xl font-bold text-success">+{formatCurrency(monthIncome)}</p>
+                    <p className="text-lg md:text-2xl font-bold text-success">+{formatCurrency(monthIncome)}</p>
                     {pendingIncome > 0 && (
                         <p className="text-xs text-text-muted mt-1">+ {formatCurrency(pendingIncome)} previsto</p>
                     )}
@@ -218,7 +218,7 @@ export function Extrato() {
                 {/* Saídas */}
                 <div className="card border-l-4 border-danger">
                     <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">Saídas Realizadas</p>
-                    <p className="text-2xl font-bold text-danger">-{formatCurrency(monthExpense)}</p>
+                    <p className="text-lg md:text-2xl font-bold text-danger">-{formatCurrency(monthExpense)}</p>
                     {pendingExpense > 0 && (
                         <p className="text-xs text-text-muted mt-1">+ {formatCurrency(pendingExpense)} previsto</p>
                     )}
@@ -227,7 +227,7 @@ export function Extrato() {
                 {/* Saldo de Fechamento */}
                 <div className={`card border-l-4 ${closingBalance >= 0 ? 'border-success' : 'border-danger'}`}>
                     <p className="text-xs text-text-secondary mb-1 uppercase tracking-wide">Saldo de Fechamento</p>
-                    <p className={`text-2xl font-bold ${closingBalance < 0 ? 'text-danger' : 'text-success'}`}>
+                    <p className={`text-lg md:text-2xl font-bold ${closingBalance < 0 ? 'text-danger' : 'text-success'}`}>
                         {formatCurrency(closingBalance)}
                     </p>
                     {pendingIncome > 0 || pendingExpense > 0 ? (
@@ -302,11 +302,11 @@ export function Extrato() {
                                     return (
                                         <div
                                             key={transaction.id}
-                                            className={`card-hover flex items-center justify-between ${transaction.status === 'pending' ? 'opacity-60 border-l-4 border-warning' : ''}`}
+                                            className={`card-hover ${transaction.status === 'pending' ? 'opacity-60 border-l-4 border-warning' : ''}`}
                                         >
-                                            <div className="flex items-center gap-3 flex-1">
+                                            <div className="flex items-start gap-3">
                                                 <div
-                                                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                                                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                                                     style={{
                                                         backgroundColor: (transaction.category?.color ?? '#94a3b8') + '20',
                                                         color: transaction.category?.color ?? '#94a3b8'
@@ -314,9 +314,9 @@ export function Extrato() {
                                                 >
                                                     <Icon className="w-5 h-5" />
                                                 </div>
-                                                <div>
+                                                <div className="flex-1 min-w-0">
                                                     <p className="font-medium text-sm">{transaction.description}</p>
-                                                    <div className="flex items-center gap-2 mt-0.5">
+                                                    <div className="flex flex-wrap items-center gap-2 mt-0.5">
                                                         <span className="text-xs text-text-muted">{transaction.category?.name}</span>
                                                         {selectedAccount === 'all' && transaction.account && (
                                                             <>
@@ -329,11 +329,11 @@ export function Extrato() {
                                                         )}
                                                     </div>
                                                 </div>
+                                                <p className={`text-base md:text-lg font-bold shrink-0 ${transaction.type === 'income' ? 'text-success' : 'text-danger'}`}>
+                                                    {transaction.type === 'income' ? '+' : '-'}
+                                                    {formatCurrency(transaction.amount)}
+                                                </p>
                                             </div>
-                                            <p className={`text-lg font-bold ${transaction.type === 'income' ? 'text-success' : 'text-danger'}`}>
-                                                {transaction.type === 'income' ? '+' : '-'}
-                                                {formatCurrency(transaction.amount)}
-                                            </p>
                                         </div>
                                     );
                                 })}

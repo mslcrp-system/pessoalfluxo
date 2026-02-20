@@ -447,19 +447,29 @@ export function CreditCards() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Cartões de Crédito</h1>
-                    <p className="text-text-secondary">Gerencie seus cartões e compras</p>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-2 flex items-center gap-2">
+                        <CreditCard className="w-7 h-7 md:w-8 md:h-8 text-primary" />
+                        Cartões de Crédito
+                    </h1>
+                    <p className="text-text-secondary text-sm md:text-base">Gerencie seus cartões e compras</p>
                 </div>
                 <div className="flex gap-2">
-                    <button onClick={() => openCardModal()} className="btn-primary">
+                    <button
+                        onClick={() => openCardModal()}
+                        className="btn-primary flex items-center gap-1 md:gap-2 text-sm"
+                    >
                         <Plus className="w-5 h-5" />
-                        Novo Cartão
+                        <span className="hidden md:inline">Novo Cartão</span>
                     </button>
-                    <button onClick={openPurchaseModal} className="btn-secondary" disabled={cards.length === 0}>
+                    <button
+                        onClick={openPurchaseModal}
+                        className="btn-secondary flex items-center gap-1 md:gap-2 text-sm"
+                        disabled={cards.length === 0}
+                    >
                         <Plus className="w-5 h-5" />
-                        Nova Compra
+                        <span className="hidden md:inline">Nova Compra</span>
                     </button>
                 </div>
             </div>
@@ -524,6 +534,7 @@ export function CreditCards() {
                 </div>
             )}
 
+            {/* Purchases Section */}
             {selectedCard && (
                 <div className="card">
                     <h2 className="text-xl font-semibold mb-4">Compras</h2>
@@ -532,11 +543,11 @@ export function CreditCards() {
                             {selectedCardPurchases.map((purchase) => (
                                 <div
                                     key={purchase.id}
-                                    className="flex items-center justify-between p-4 rounded-lg bg-surface-hover hover:bg-surface transition-colors"
+                                    className="p-3 md:p-4 rounded-lg bg-surface-hover hover:bg-surface transition-colors"
                                 >
-                                    <div className="flex items-center gap-4 flex-1">
+                                    <div className="flex items-start gap-3">
                                         <div
-                                            className="w-10 h-10 rounded-lg flex items-center justify-center text-xl"
+                                            className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                                             style={{ backgroundColor: purchase.category?.color + '20', color: purchase.category?.color }}
                                         >
                                             {(() => {
@@ -544,30 +555,30 @@ export function CreditCards() {
                                                 return <Icon className="w-5 h-5" />;
                                             })()}
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="font-medium">{purchase.description}</p>
-                                            <div className="flex items-center gap-4 text-sm text-text-secondary">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-sm md:text-base">{purchase.description}</p>
+                                            <div className="flex flex-wrap items-center gap-2 md:gap-4 text-xs md:text-sm text-text-secondary mt-1">
                                                 <span>{purchase.category?.name}</span>
-                                                <span>•</span>
+                                                <span className="hidden md:inline">•</span>
                                                 <span>{format(parseISO(purchase.purchase_date), 'dd/MM/yyyy', { locale: ptBR })}</span>
-                                                <span>•</span>
+                                                <span className="hidden md:inline">•</span>
                                                 <span>{purchase.installments}x de {formatCurrency(purchase.total_amount / purchase.installments)}</span>
                                             </div>
+                                            <div className="flex items-center justify-between mt-2">
+                                                <div>
+                                                    <p className="text-base md:text-lg font-bold">{formatCurrency(purchase.total_amount)}</p>
+                                                    <p className="text-xs text-text-muted">
+                                                        1ª parcela: {format(parseISO(purchase.first_due_month), 'MM/yyyy', { locale: ptBR })}
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeletePurchase(purchase.id)}
+                                                    className="p-2 hover:bg-danger/20 rounded text-danger"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <div className="text-right">
-                                            <p className="text-lg font-bold">{formatCurrency(purchase.total_amount)}</p>
-                                            <p className="text-sm text-text-muted">
-                                                1ª parcela: {format(parseISO(purchase.first_due_month), 'MM/yyyy', { locale: ptBR })}
-                                            </p>
-                                        </div>
-                                        <button
-                                            onClick={() => handleDeletePurchase(purchase.id)}
-                                            className="p-2 hover:bg-danger/20 rounded text-danger"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -583,7 +594,7 @@ export function CreditCards() {
             {/* Invoice Section */}
             {selectedCard && (
                 <div className="card">
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                         <h2 className="text-xl font-semibold flex items-center gap-2">
                             <Receipt className="w-5 h-5" />
                             Fatura do Mês

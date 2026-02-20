@@ -137,8 +137,8 @@ export function Settings() {
         <div className="space-y-6 animate-fade-in">
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Configurações</h1>
-                    <p className="text-text-secondary">Gerencie suas preferências e categorias</p>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Configurações</h1>
+                    <p className="text-text-secondary text-sm md:text-base">Gerencie suas preferências e categorias</p>
                 </div>
             </div>
 
@@ -158,7 +158,7 @@ export function Settings() {
                 <div className="space-y-8">
                     {/* Despesas */}
                     <section>
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                             <h2 className="text-xl font-semibold text-danger">Despesas</h2>
                             <button
                                 onClick={() => {
@@ -201,7 +201,7 @@ export function Settings() {
 
                     {/* Receitas */}
                     <section>
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
                             <h2 className="text-xl font-semibold text-success">Receitas</h2>
                             <button
                                 onClick={() => {

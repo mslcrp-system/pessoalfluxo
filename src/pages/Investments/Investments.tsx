@@ -102,7 +102,7 @@ export function Investments() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
                         <TrendingUp className="w-8 h-8 text-primary" />
                         Investimentos
                     </h1>
@@ -145,7 +145,8 @@ export function Investments() {
             {investments.length > 0 ? (
                 <div className="grid grid-cols-1 gap-6">
                     {/* Group by type logic could go here, for now simple list */}
-                    <div className="card overflow-hidden p-0">
+                    {/* Desktop table - hidden on mobile */}
+                    <div className="card overflow-hidden p-0 hidden md:block">
                         <table className="w-full">
                             <thead className="bg-surface-hover">
                                 <tr>
@@ -220,6 +221,70 @@ export function Investments() {
                                 })}
                             </tbody>
                         </table>
+                    </div>
+
+                    {/* Mobile card view - hidden on desktop */}
+                    <div className="md:hidden space-y-3">
+                        {investments.map((asset) => {
+                            const total = asset.quantity * asset.current_price;
+                            const cost = asset.quantity * asset.average_price;
+                            const profit = total - cost;
+
+                            return (
+                                <div key={asset.id} className="card">
+                                    <div className="flex items-start justify-between mb-3">
+                                        <div>
+                                            <h3 className="font-semibold">{asset.ticker || asset.name}</h3>
+                                            <p className="text-xs text-text-secondary">{asset.name}</p>
+                                        </div>
+                                        <span className="badge badge-secondary text-xs">
+                                            {getTypeLabel(asset.type)}
+                                        </span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+                                        <div>
+                                            <p className="text-xs text-text-secondary">Qtd</p>
+                                            <p className="font-mono">{asset.quantity}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-text-secondary">PM</p>
+                                            <p className="font-mono">{formatCurrency(asset.average_price)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-text-secondary">Atual</p>
+                                            <p className="font-mono">{formatCurrency(asset.current_price)}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-xs text-text-secondary">Total</p>
+                                            <p className="font-bold">{formatCurrency(total)}</p>
+                                            <p className={`text-xs ${profit >= 0 ? 'text-success' : 'text-danger'}`}>
+                                                {profit >= 0 ? '+' : ''}{formatCurrency(profit)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 border-t border-surface-hover pt-3">
+                                        <button
+                                            onClick={() => handleOperation(asset)}
+                                            className="flex-1 p-2 bg-success/10 hover:bg-success/20 rounded text-success text-sm flex items-center justify-center gap-1"
+                                        >
+                                            <DollarSign className="w-4 h-4" /> Operação
+                                        </button>
+                                        <button
+                                            onClick={() => handleEditAsset(asset)}
+                                            className="p-2 hover:bg-surface-hover rounded text-primary"
+                                        >
+                                            <Edit className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteAsset(asset.id)}
+                                            className="p-2 hover:bg-surface-hover rounded text-danger"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             ) : (

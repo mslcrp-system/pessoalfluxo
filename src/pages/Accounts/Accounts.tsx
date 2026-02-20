@@ -126,10 +126,10 @@ export function Accounts() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Contas</h1>
-                    <p className="text-text-secondary">Gerencie suas contas correntes e de investimento</p>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Contas</h1>
+                    <p className="text-text-secondary text-sm md:text-base">Gerencie suas contas bancárias e carteiras e de investimento</p>
                 </div>
                 <button onClick={() => openModal()} className="btn-primary flex items-center gap-2">
                     <Plus className="w-5 h-5" />
@@ -140,7 +140,7 @@ export function Accounts() {
             {/* Total Balance */}
             <div className="card bg-gradient-to-br from-primary to-secondary text-white">
                 <p className="text-sm opacity-90 mb-1">Saldo Total</p>
-                <p className="text-4xl font-bold">{formatCurrency(totalBalance)}</p>
+                <p className="text-2xl md:text-4xl font-bold">{formatCurrency(totalBalance)}</p>
             </div>
 
             {/* Accounts List */}
@@ -178,7 +178,7 @@ export function Accounts() {
                                 </button>
                             </div>
                         </div>
-                        <p className="text-2xl font-bold">{formatCurrency(account.balance)}</p>
+                        <p className={`text-xl md:text-2xl font-bold ${account.balance < 0 ? 'text-danger' : ''}`}>{formatCurrency(account.balance)}</p>
                     </div>
                 ))}
             </div>

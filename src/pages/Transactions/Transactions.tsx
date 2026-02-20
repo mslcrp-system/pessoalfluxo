@@ -369,32 +369,32 @@ export function Transactions() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold mb-2">Transações</h1>
-                    <p className="text-text-secondary">Gerencie suas receitas e despesas</p>
+                    <h1 className="text-2xl md:text-3xl font-bold mb-2">Transações</h1>
+                    <p className="text-text-secondary text-sm md:text-base">Gerencie suas receitas e despesas</p>
                 </div>
                 <div className="flex gap-2">
                     <button
                         onClick={() => openModal('income')}
-                        className="btn-success flex items-center gap-2"
+                        className="btn-success flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-lg text-sm"
                     >
                         <ArrowUpCircle className="w-5 h-5" />
-                        Receita
+                        <span className="hidden md:inline">Receita</span>
                     </button>
                     <button
                         onClick={() => openModal('expense')}
-                        className="btn-danger flex items-center gap-2"
+                        className="btn-danger flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-lg text-sm"
                     >
                         <ArrowDownCircle className="w-5 h-5" />
-                        Despesa
+                        <span className="hidden md:inline">Despesa</span>
                     </button>
                     <button
                         onClick={() => openModal('transfer')}
-                        className="btn-primary flex items-center gap-2"
+                        className="btn-primary flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-lg text-sm"
                     >
                         <ArrowLeftRight className="w-5 h-5" />
-                        Transferência
+                        <span className="hidden md:inline">Transferência</span>
                     </button>
                 </div>
             </div>
@@ -425,25 +425,25 @@ export function Transactions() {
             < div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" >
                 <div className="card bg-gradient-to-br from-success to-success-hover text-white">
                     <p className="text-sm opacity-90 mb-1">Receitas Realizadas</p>
-                    <p className="text-3xl font-bold">{formatCurrency(totalIncome)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(totalIncome)}</p>
                     {pendingIncome > 0 && (
                         <p className="text-xs opacity-75 mt-2">+ {formatCurrency(pendingIncome)} previsto</p>
                     )}
                 </div>
                 <div className="card bg-gradient-to-br from-danger to-danger-hover text-white">
                     <p className="text-sm opacity-90 mb-1">Despesas Realizadas</p>
-                    <p className="text-3xl font-bold">{formatCurrency(totalExpense)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(totalExpense)}</p>
                     {pendingExpense > 0 && (
                         <p className="text-xs opacity-75 mt-2">+ {formatCurrency(pendingExpense)} previsto</p>
                     )}
                 </div>
                 <div className={`card bg-gradient-to-br ${balance >= 0 ? 'from-primary to-secondary' : 'from-danger to-danger-hover'} text-white`}>
                     <p className="text-sm opacity-90 mb-1">Saldo Realizado</p>
-                    <p className="text-3xl font-bold">{formatCurrency(balance)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(balance)}</p>
                 </div>
                 <div className="card bg-gradient-to-br from-warning to-warning-hover text-white">
                     <p className="text-sm opacity-90 mb-1">Saldo Previsto</p>
-                    <p className="text-3xl font-bold">{formatCurrency(balance + pendingIncome - pendingExpense)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(balance + pendingIncome - pendingExpense)}</p>
                 </div>
             </div >
 
@@ -534,23 +534,23 @@ export function Transactions() {
             < div className="space-y-4" >
                 {
                     transactions.map((transaction) => (
-                        <div key={transaction.id} className={`card-hover flex items-center justify-between ${transaction.status === 'pending' ? 'opacity-60 border-l-4 border-warning' : ''
+                        <div key={transaction.id} className={`card-hover ${transaction.status === 'pending' ? 'opacity-60 border-l-4 border-warning' : ''
                             }`}>
-                            <div className="flex items-center gap-4 flex-1">
+                            <div className="flex items-start gap-3">
                                 <div
-                                    className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
+                                    className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center shrink-0"
                                     style={{ backgroundColor: transaction.category?.color + '20', color: transaction.category?.color }}
                                 >
                                     {(() => {
                                         const Icon = getCategoryIcon(transaction.category?.icon || '');
-                                        return <Icon className="w-6 h-6" />;
+                                        return <Icon className="w-5 h-5 md:w-6 md:h-6" />;
                                     })()}
                                 </div>
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-2">
-                                        <h3 className="font-semibold">{transaction.description}</h3>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1 md:gap-2">
+                                        <h3 className="font-semibold text-sm md:text-base truncate">{transaction.description}</h3>
                                         <span
-                                            className={`badge ${transaction.type === 'income'
+                                            className={`badge text-[10px] md:text-xs ${transaction.type === 'income'
                                                 ? 'badge-success'
                                                 : transaction.type === 'expense'
                                                     ? 'badge-danger'
@@ -560,61 +560,62 @@ export function Transactions() {
                                             {transaction.category?.name}
                                         </span>
                                         {transaction.status === 'pending' && (
-                                            <span className="badge badge-warning flex items-center gap-1">
+                                            <span className="badge badge-warning flex items-center gap-1 text-[10px] md:text-xs">
                                                 <Clock className="w-3 h-3" />
                                                 Previsto
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-text-muted mt-1">
+                                    <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-text-muted mt-1">
                                         <span className="flex items-center gap-1">
-                                            <Calendar className="w-4 h-4" />
+                                            <Calendar className="w-3 h-3 md:w-4 md:h-4" />
                                             {formatDate(transaction.transaction_date)}
                                         </span>
-                                        <span>{transaction.account?.name}</span>
+                                        <span className="truncate">{transaction.account?.name}</span>
                                     </div>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4">
-                                <p
-                                    className={`text-2xl font-bold ${transaction.type === 'income' ? 'text-success' : 'text-danger'
-                                        }`}
-                                >
-                                    {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
-                                </p>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => openEditModal(transaction)}
-                                        className="p-2 hover:bg-primary hover:text-white rounded-lg transition-colors"
-                                        title="Editar transação"
-                                    >
-                                        <Edit className="w-5 h-5" />
-                                    </button>
-                                    {transaction.status === 'pending' && (
-                                        <button
-                                            onClick={() => handleComplete(transaction)}
-                                            className="p-2 hover:bg-success hover:text-white rounded-lg transition-colors"
-                                            title="Efetivar transação"
+                                    {/* Amount + actions row on mobile */}
+                                    <div className="flex items-center justify-between mt-2">
+                                        <p
+                                            className={`text-lg md:text-2xl font-bold ${transaction.type === 'income' ? 'text-success' : 'text-danger'
+                                                }`}
                                         >
-                                            <Check className="w-5 h-5" />
-                                        </button>
-                                    )}
-                                    {transaction.status === 'completed' && (
-                                        <button
-                                            onClick={() => handleRevert(transaction)}
-                                            className="p-2 hover:bg-warning hover:text-white rounded-lg transition-colors"
-                                            title="Reverter para previsto"
-                                        >
-                                            <RotateCcw className="w-5 h-5" />
-                                        </button>
-                                    )}
-                                    <button
-                                        onClick={() => handleDelete(transaction)}
-                                        className="p-2 hover:bg-danger hover:text-white rounded-lg transition-colors"
-                                        title="Excluir transação"
-                                    >
-                                        <X className="w-5 h-5" />
-                                    </button>
+                                            {transaction.type === 'income' ? '+' : '-'} {formatCurrency(transaction.amount)}
+                                        </p>
+                                        <div className="flex gap-1">
+                                            <button
+                                                onClick={() => openEditModal(transaction)}
+                                                className="p-1.5 md:p-2 hover:bg-primary hover:text-white rounded-lg transition-colors"
+                                                title="Editar transação"
+                                            >
+                                                <Edit className="w-4 h-4 md:w-5 md:h-5" />
+                                            </button>
+                                            {transaction.status === 'pending' && (
+                                                <button
+                                                    onClick={() => handleComplete(transaction)}
+                                                    className="p-1.5 md:p-2 hover:bg-success hover:text-white rounded-lg transition-colors"
+                                                    title="Efetivar transação"
+                                                >
+                                                    <Check className="w-4 h-4 md:w-5 md:h-5" />
+                                                </button>
+                                            )}
+                                            {transaction.status === 'completed' && (
+                                                <button
+                                                    onClick={() => handleRevert(transaction)}
+                                                    className="p-1.5 md:p-2 hover:bg-warning hover:text-white rounded-lg transition-colors"
+                                                    title="Reverter para previsto"
+                                                >
+                                                    <RotateCcw className="w-4 h-4 md:w-5 md:h-5" />
+                                                </button>
+                                            )}
+                                            <button
+                                                onClick={() => handleDelete(transaction)}
+                                                className="p-1.5 md:p-2 hover:bg-danger hover:text-white rounded-lg transition-colors"
+                                                title="Excluir transação"
+                                            >
+                                                <X className="w-4 h-4 md:w-5 md:h-5" />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

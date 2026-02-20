@@ -210,7 +210,7 @@ export function Dashboard() {
         <div className="space-y-6">
             {/* Header */}
             <div>
-                <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+                <h1 className="text-2xl md:text-3xl font-bold mb-2">Dashboard</h1>
                 <p className="text-text-secondary">Visão geral das suas finanças</p>
             </div>
 
@@ -221,7 +221,7 @@ export function Dashboard() {
                         <p className="text-sm opacity-90">Saldo Total Atual</p>
                         <Wallet className="w-5 h-5 opacity-75" />
                     </div>
-                    <p className="text-3xl font-bold">{formatCurrency(totalRealBalance)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(totalRealBalance)}</p>
                     <p className="text-xs opacity-75 mt-2">{accounts.length} conta(s) ativa(s)</p>
                 </div>
 
@@ -230,7 +230,7 @@ export function Dashboard() {
                         <p className="text-sm opacity-90">Receitas do Mês</p>
                         <ArrowUpCircle className="w-5 h-5 opacity-75" />
                     </div>
-                    <p className="text-3xl font-bold">{formatCurrency(monthIncome)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(monthIncome)}</p>
                     <p className="text-xs opacity-75 mt-2">
                         {currentMonthTransactions.filter((t) => t.type === 'income').length} transação(ões)
                     </p>
@@ -241,7 +241,7 @@ export function Dashboard() {
                         <p className="text-sm opacity-90">Despesas do Mês</p>
                         <ArrowDownCircle className="w-5 h-5 opacity-75" />
                     </div>
-                    <p className="text-3xl font-bold">{formatCurrency(monthExpense)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(monthExpense)}</p>
                     <p className="text-xs opacity-75 mt-2">
                         {currentMonthTransactions.filter((t) => t.type === 'expense').length} transação(ões)
                     </p>
@@ -259,7 +259,7 @@ export function Dashboard() {
                             <TrendingDown className="w-5 h-5 opacity-75" />
                         )}
                     </div>
-                    <p className="text-3xl font-bold">{formatCurrency(monthBalance)}</p>
+                    <p className="text-xl md:text-3xl font-bold">{formatCurrency(monthBalance)}</p>
                     <p className="text-xs opacity-75 mt-2">
                         {format(currentMonth, "MMMM 'de' yyyy", { locale: ptBR })}
                     </p>
@@ -278,7 +278,7 @@ export function Dashboard() {
                         <ResponsiveContainer width="100%" height={300}>
                             <BarChart data={weeklyData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--surface-hover))" />
-                                <XAxis dataKey="week" tick={{ fontSize: 14, fill: '#94a3b8' }} />
+                                <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#94a3b8' }} />
                                 <YAxis
                                     tick={{ fontSize: 14, fill: '#94a3b8' }}
                                     tickFormatter={(value) => `R$ ${(value / 1000).toFixed(1)}k`}
@@ -311,15 +311,15 @@ export function Dashboard() {
                         Gastos por Categoria
                     </h2>
                     {categoryChartData.length > 0 ? (
-                        <div className="flex items-center gap-4">
-                            <ResponsiveContainer width="50%" height={300}>
+                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                            <ResponsiveContainer width="100%" height={220}>
                                 <PieChart>
                                     <Pie
                                         data={categoryChartData}
                                         cx="50%"
                                         cy="50%"
                                         labelLine={false}
-                                        outerRadius={100}
+                                        outerRadius={80}
                                         fill="#8884d8"
                                         dataKey="value"
                                     >
@@ -338,7 +338,7 @@ export function Dashboard() {
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
-                            <div className="flex-1 space-y-2">
+                            <div className="w-full space-y-2">
                                 {categoryChartData.map((cat, index) => (
                                     <div key={index} className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export function Dashboard() {
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={generateBalanceHistory()}>
                             <CartesianGrid strokeDasharray="3 3" stroke="oklch(var(--surface-hover))" />
-                            <XAxis dataKey="date" tick={{ fontSize: 14, fill: '#94a3b8' }} interval="preserveStartEnd" />
+                            <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#94a3b8' }} interval="preserveStartEnd" />
                             <YAxis
                                 tick={{ fontSize: 14, fill: '#94a3b8' }}
                                 tickFormatter={(value) => `R$ ${(value / 1000).toFixed(1)}k`}
@@ -421,7 +421,7 @@ export function Dashboard() {
                                 className="p-4 rounded-lg bg-surface-hover border border-surface-hover hover:border-primary transition-colors"
                             >
                                 <p className="text-sm text-text-secondary mb-1">{account.name}</p>
-                                <p className={`text-2xl font-bold ${account.realBalance < 0 ? 'text-danger' : ''}`}>
+                                <p className={`text-lg md:text-2xl font-bold ${account.realBalance < 0 ? 'text-danger' : ''}`}>
                                     {formatCurrency(account.realBalance)}
                                 </p>
                                 <div className="flex justify-between mt-2">

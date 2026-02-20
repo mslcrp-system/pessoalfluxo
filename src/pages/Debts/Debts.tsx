@@ -89,7 +89,7 @@ export function Debts() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
+                    <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
                         <TrendingDown className="w-8 h-8 text-danger" />
                         Dívidas & Financiamentos
                     </h1>
@@ -109,15 +109,15 @@ export function Debts() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="card bg-gradient-to-br from-surface to-surface-hover">
                     <p className="text-sm text-text-secondary mb-1">Saldo Devedor Total</p>
-                    <p className="text-2xl font-bold text-danger">{formatCurrency(totalOutstanding)}</p>
+                    <p className="text-xl md:text-2xl font-bold text-danger">{formatCurrency(totalOutstanding)}</p>
                 </div>
                 <div className="card bg-gradient-to-br from-surface to-surface-hover">
                     <p className="text-sm text-text-secondary mb-1">Valor Original Total</p>
-                    <p className="text-2xl font-bold">{formatCurrency(totalDebtAmount)}</p>
+                    <p className="text-xl md:text-2xl font-bold">{formatCurrency(totalDebtAmount)}</p>
                 </div>
                 <div className="card bg-gradient-to-br from-surface to-surface-hover">
                     <p className="text-sm text-text-secondary mb-1">Qtd. Dívidas Ativas</p>
-                    <p className="text-2xl font-bold">{debts.filter(d => d.current_balance > 0).length}</p>
+                    <p className="text-xl md:text-2xl font-bold">{debts.filter(d => d.current_balance > 0).length}</p>
                 </div>
             </div>
 
@@ -159,7 +159,7 @@ export function Debts() {
                                 <div className="flex justify-between items-end">
                                     <div>
                                         <p className="text-xs text-text-secondary">Saldo Devedor</p>
-                                        <p className="text-2xl font-bold text-danger">
+                                        <p className="text-xl md:text-2xl font-bold text-danger">
                                             {formatCurrency(debt.current_balance)}
                                         </p>
                                     </div>
