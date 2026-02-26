@@ -77,6 +77,52 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
         return parseFloat(value);
     };
 
+    const findTransactions = (obj: any): any[] => {
+        if (!obj || typeof obj !== 'object') return [];
+
+        let found: any[] = [];
+
+        // Se encontramos a tag STMTTRN diretamente
+        if (obj.STMTTRN) {
+            return Array.isArray(obj.STMTTRN) ? obj.STMTTRN : [obj.STMTTRN];
+        }
+
+        // Busca recursiva
+        for (const key in obj) {
+            if (key === 'STMTTRN') {
+                const trns = Array.isArray(obj[key]) ? obj[key] : [obj[key]];
+                found = found.concat(trns);
+            } else if (typeof obj[key] === 'object') {
+                found = found.concat(findTransactions(obj[key]));
+            }
+        }
+
+        return found;
+    };
+
+    const autoCategorize = (description: string, type: 'income' | 'expense'): string | undefined => {
+        const desc = description.toLowerCase();
+
+        const rules = [
+            { keywords: ['mercado', 'supermercado', 'paizao', 'mufato', 'angeloni', 'atacad'], category: 'Alimentação' },
+            { keywords: ['posto', 'combustivel', 'gasolina', 'etanol', 'uber', '99app'], category: 'Transporte' },
+            { keywords: ['restaurante', 'ifood', 'bking', 'mcdonalds', 'pizza', 'burger'], category: 'Alimentação' },
+            { keywords: ['farmacia', 'droga', 'saude', 'hospital', 'medico'], category: 'Saúde' },
+            { keywords: ['aluguel', 'condominio', 'luz', 'copel', 'agua', 'sanepar', 'internet'], category: 'Moradia' },
+            { keywords: ['netflix', 'spotify', 'disney', 'prime helper', 'cinema', 'steam'], category: 'Lazer' },
+            { keywords: ['pix', 'transferencia'], category: 'Transferência' }
+        ];
+
+        for (const rule of rules) {
+            if (rule.keywords.some(k => desc.includes(k))) {
+                const cat = categories.find(c => c.name.toLowerCase() === rule.category.toLowerCase() && c.type === type);
+                if (cat) return cat.id;
+            }
+        }
+
+        return undefined;
+    };
+
     const processFiles = async (filesToProcess: File[]) => {
         setLoading(true);
         const allTransactions: ParsedTransaction[] = [];
@@ -90,22 +136,16 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                 try {
                     const ofx = new Ofx(text);
                     const ofxData = ofx.toJson();
-                    console.log('OFX Data:', ofxData);
+                    console.log('OFX Data structure:', ofxData);
 
-                    // Tenta encontrar as transações em caminhos comuns de diferentes bancos
-                    let transactions =
-                        ofxData?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN ||
-                        ofxData?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.BANKTRANLIST?.STMTTRN ||
-                        ofxData?.OFX?.CREDITCARDMSGSRSV1?.CCSTMTTRNRS?.CCSTMTRS?.BANKTRANLIST?.STMTTRN ||
-                        [];
+                    const transactions = findTransactions(ofxData);
 
                     if (transactions.length === 0) {
-                        alert('Não foi possível encontrar transações na estrutura deste arquivo OFX.');
-                        setLoading(false);
-                        return;
+                        alert(`Não foi possível encontrar transações no arquivo: ${file.name}`);
+                        continue;
                     }
 
-                    const mapped = (Array.isArray(transactions) ? transactions : [transactions]).map((t: any) => {
+                    const mapped = transactions.map((t: any) => {
                         const dateStr = t.DTPOSTED || '';
                         const dateMatch = dateStr.match(/^(\d{4})(\d{2})(\d{2})/);
                         const date = dateMatch
@@ -113,13 +153,16 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                             : format(new Date(), 'yyyy-MM-dd');
 
                         const amount = parseAmount(String(t.TRNAMT || '0'));
+                        const type = amount > 0 ? 'income' : 'expense' as 'income' | 'expense';
+                        const description = t.MEMO || t.NAME || 'Sem descrição';
 
                         return {
                             date,
-                            description: t.MEMO || t.NAME || 'Sem descrição',
+                            description,
                             amount: Math.abs(amount),
-                            type: amount > 0 ? 'income' : 'expense' as 'income' | 'expense',
-                            selected: !!dateMatch, // Deselect by default if date is invalid
+                            type,
+                            category_id: autoCategorize(description, type),
+                            selected: !!dateMatch,
                         };
                     });
                     allTransactions.push(...mapped);
@@ -139,6 +182,7 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                             }
                         },
                         header: false,
+                        skipEmptyLines: true,
                     });
                     setLoading(false);
                     return; // Wait for mapping
@@ -149,8 +193,9 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
         if (allTransactions.length > 0) {
             setParsedData(allTransactions);
             setStep('preview');
+        } else if (step === 'upload') {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleApplyMapping = () => {
@@ -169,11 +214,15 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                 date = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
             }
 
+            const description = row[mapping.description] || 'Sem descrição';
+            const type = amount > 0 ? 'income' : 'expense' as 'income' | 'expense';
+
             return {
                 date,
-                description: row[mapping.description] || 'Sem descrição',
+                description,
                 amount: Math.abs(amount),
-                type: amount > 0 ? 'income' : 'expense' as 'income' | 'expense',
+                type,
+                category_id: autoCategorize(description, type),
                 selected: true,
             };
         }).filter(t => !isNaN(t.amount) && t.date);
@@ -344,9 +393,41 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
 
                     {step === 'preview' && (
                         <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-semibold">{parsedData.length} transações encontradas</h3>
-                                <div className="text-sm text-text-secondary">Selecione as que deseja importar</div>
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface-hover/30 p-4 rounded-xl border border-border">
+                                <div>
+                                    <h3 className="text-lg font-semibold">{parsedData.length} transações encontradas</h3>
+                                    <div className="text-sm text-text-secondary">Selecione as que deseja importar e defina as categorias.</div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="text-xs font-medium text-text-secondary whitespace-nowrap">Aplicar categoria em todos:</div>
+                                    <select
+                                        className="select py-1 text-xs min-w-[150px]"
+                                        onChange={(e) => {
+                                            const categoryId = e.target.value;
+                                            if (!categoryId) return;
+                                            const selectedCat = categories.find(c => c.id === categoryId);
+                                            const newData = parsedData.map(t => {
+                                                if (t.type === selectedCat?.type) {
+                                                    return { ...t, category_id: categoryId };
+                                                }
+                                                return t;
+                                            });
+                                            setParsedData(newData);
+                                        }}
+                                    >
+                                        <option value="">Selecionar...</option>
+                                        <optgroup label="Despesas">
+                                            {categories.filter(c => c.type === 'expense').map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </optgroup>
+                                        <optgroup label="Receitas">
+                                            {categories.filter(c => c.type === 'income').map(c => (
+                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                            ))}
+                                        </optgroup>
+                                    </select>
+                                </div>
                             </div>
 
                             <div className="space-y-2">
@@ -362,11 +443,30 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                                             }}
                                             className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
                                         />
-                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
+                                        <div className="flex-1 grid grid-cols-1 md:grid-cols-5 gap-4 items-center">
                                             <div className="text-sm font-medium">
                                                 {isValid(new Date(t.date)) ? format(new Date(t.date), 'dd/MM/yyyy') : 'Data inválida'}
                                             </div>
-                                            <div className="text-sm font-semibold truncate md:col-span-2">{t.description}</div>
+                                            <div className="text-sm font-semibold truncate md:col-span-1" title={t.description}>{t.description}</div>
+                                            <div className="md:col-span-2">
+                                                <select
+                                                    value={t.category_id || ''}
+                                                    onChange={(e) => {
+                                                        const newData = [...parsedData];
+                                                        newData[i].category_id = e.target.value;
+                                                        setParsedData(newData);
+                                                    }}
+                                                    className="select py-1 text-xs"
+                                                >
+                                                    <option value="">Selecionar categoria...</option>
+                                                    {categories
+                                                        .filter(c => c.type === t.type)
+                                                        .map(cat => (
+                                                            <option key={cat.id} value={cat.id}>{cat.name}</option>
+                                                        ))
+                                                    }
+                                                </select>
+                                            </div>
                                             <div className={`text-right font-bold ${t.type === 'income' ? 'text-success' : 'text-danger'}`}>
                                                 {t.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
                                             </div>
