@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Upload, Check, AlertCircle, Loader2 } from 'lucide-react';
 import Papa from 'papaparse';
 import { Ofx } from 'ofx-data-extractor';
-import { format, isBefore, startOfToday } from 'date-fns';
+import { format, isBefore, startOfToday, isValid } from 'date-fns';
 import { supabase } from '../../../lib/supabase';
 
 interface Account {
@@ -76,18 +76,21 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                     const transactions = ofxData?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN || [];
 
                     const mapped = (Array.isArray(transactions) ? transactions : [transactions]).map((t: any) => {
-                        const dateStr = t.DTPOSTED; // YYYYMMDD
-                        const year = dateStr.substring(0, 4);
-                        const month = dateStr.substring(4, 6);
-                        const day = dateStr.substring(6, 8);
-                        const amount = parseFloat(t.TRNAMT);
+                        const dateStr = t.DTPOSTED || '';
+                        const dateMatch = dateStr.match(/^(\d{4})(\d{2})(\d{2})/);
+                        const date = dateMatch
+                            ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
+                            : format(new Date(), 'yyyy-MM-dd'); // Fallback to today if parsing fails
+
+                        const amountStr = String(t.TRNAMT || '0').replace(',', '.');
+                        const amount = parseFloat(amountStr);
 
                         return {
-                            date: `${year}-${month}-${day}`,
+                            date,
                             description: t.MEMO || t.NAME || 'Sem descrição',
                             amount: Math.abs(amount),
                             type: amount > 0 ? 'income' : 'expense' as 'income' | 'expense',
-                            selected: true,
+                            selected: !!dateMatch, // Deselect by default if date is invalid
                         };
                     });
                     allTransactions.push(...mapped);
@@ -332,7 +335,9 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                                             className="w-5 h-5 rounded border-border text-primary focus:ring-primary"
                                         />
                                         <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-4 items-center">
-                                            <div className="text-sm font-medium">{format(new Date(t.date), 'dd/MM/yyyy')}</div>
+                                            <div className="text-sm font-medium">
+                                                {isValid(new Date(t.date)) ? format(new Date(t.date), 'dd/MM/yyyy') : 'Data inválida'}
+                                            </div>
                                             <div className="text-sm font-semibold truncate md:col-span-2">{t.description}</div>
                                             <div className={`text-right font-bold ${t.type === 'income' ? 'text-success' : 'text-danger'}`}>
                                                 {t.type === 'income' ? '+' : '-'} {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(t.amount)}
