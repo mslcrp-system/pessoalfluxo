@@ -60,6 +60,23 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
         }
     };
 
+    const parseAmount = (value: string): number => {
+        if (!value) return 0;
+        // Se houver ponto e vírgula, assume que o ponto é milhar e a vírgula é decimal (PT-BR)
+        // Ex: 1.500,00 -> 1500.00
+        if (value.includes('.') && value.includes(',')) {
+            const cleanValue = value.replace(/\./g, '').replace(',', '.');
+            return parseFloat(cleanValue);
+        }
+        // Se houver apenas vírgula, assume que é decimal
+        // Ex: 1500,00 -> 1500.00
+        if (value.includes(',')) {
+            return parseFloat(value.replace(',', '.'));
+        }
+        // Caso contrário, assume formato padrão (pode ter ponto como decimal ou nada)
+        return parseFloat(value);
+    };
+
     const processFiles = async (filesToProcess: File[]) => {
         setLoading(true);
         const allTransactions: ParsedTransaction[] = [];
@@ -73,17 +90,29 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
                 try {
                     const ofx = new Ofx(text);
                     const ofxData = ofx.toJson();
-                    const transactions = ofxData?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN || [];
+                    console.log('OFX Data:', ofxData);
+
+                    // Tenta encontrar as transações em caminhos comuns de diferentes bancos
+                    let transactions =
+                        ofxData?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.STMTRS?.BANKTRANLIST?.STMTTRN ||
+                        ofxData?.OFX?.BANKMSGSRSV1?.STMTTRNRS?.BANKTRANLIST?.STMTTRN ||
+                        ofxData?.OFX?.CREDITCARDMSGSRSV1?.CCSTMTTRNRS?.CCSTMTRS?.BANKTRANLIST?.STMTTRN ||
+                        [];
+
+                    if (transactions.length === 0) {
+                        alert('Não foi possível encontrar transações na estrutura deste arquivo OFX.');
+                        setLoading(false);
+                        return;
+                    }
 
                     const mapped = (Array.isArray(transactions) ? transactions : [transactions]).map((t: any) => {
                         const dateStr = t.DTPOSTED || '';
                         const dateMatch = dateStr.match(/^(\d{4})(\d{2})(\d{2})/);
                         const date = dateMatch
                             ? `${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}`
-                            : format(new Date(), 'yyyy-MM-dd'); // Fallback to today if parsing fails
+                            : format(new Date(), 'yyyy-MM-dd');
 
-                        const amountStr = String(t.TRNAMT || '0').replace(',', '.');
-                        const amount = parseFloat(amountStr);
+                        const amount = parseAmount(String(t.TRNAMT || '0'));
 
                         return {
                             date,
@@ -131,8 +160,7 @@ export function ImportModal({ onClose, accounts, categories, userId, onImportCom
         }
 
         const transactions = csvRows.map(row => {
-            const amountStr = row[mapping.amount]?.replace(',', '.') || '0';
-            const amount = parseFloat(amountStr);
+            const amount = parseAmount(row[mapping.amount] || '0');
 
             // Try to parse Brazilian date DD/MM/YYYY or YYYY-MM-DD
             let date = row[mapping.date] || '';
