@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../lib/auth';
-import { ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Calendar, X, Check, Clock, Edit, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowUpCircle, ArrowDownCircle, ArrowLeftRight, Calendar, X, Check, Clock, Edit, RotateCcw, ChevronLeft, ChevronRight, Download } from 'lucide-react';
 import { getCategoryIcon } from '../../utils/categoryIcons';
 import { format, isBefore, startOfToday, startOfMonth, endOfMonth, addMonths, subMonths } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { ImportModal } from './components/ImportModal';
 
 type Account = {
     id: string;
@@ -43,6 +44,7 @@ export function Transactions() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [filterType, setFilterType] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
     const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'completed'>('all');
@@ -395,6 +397,13 @@ export function Transactions() {
                     >
                         <ArrowLeftRight className="w-5 h-5" />
                         <span className="hidden md:inline">Transferência</span>
+                    </button>
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="btn-ghost flex items-center gap-1 md:gap-2 px-2 md:px-4 py-2 rounded-lg text-sm border border-border"
+                    >
+                        <Download className="w-5 h-5" />
+                        <span className="hidden md:inline">Importar</span>
                     </button>
                 </div>
             </div>
@@ -761,6 +770,20 @@ export function Transactions() {
                             </form>
                         </div>
                     </div>
+                )
+            }
+            {
+                showImportModal && (
+                    <ImportModal
+                        onClose={() => setShowImportModal(false)}
+                        accounts={accounts}
+                        categories={categories}
+                        userId={user!.id}
+                        onImportComplete={() => {
+                            loadData();
+                            setShowImportModal(false);
+                        }}
+                    />
                 )
             }
         </div >

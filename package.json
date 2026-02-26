@@ -12,8 +12,11 @@
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@supabase/supabase-js": "^2.95.3",
+    "@types/papaparse": "^5.5.2",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.563.0",
+    "ofx-data-extractor": "^1.4.8",
+    "papaparse": "^5.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.71.1",
